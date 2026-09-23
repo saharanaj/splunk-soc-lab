@@ -1,0 +1,25 @@
+# Detection 01 - Brute Force
+index=windows EventCode=4625
+| stats count min(_time) as first_seen max(_time) as last_seen by Account_Name, Source_Network_Address
+| where count >= 5
+| sort - count
+
+# Detection 02 - Failed Then Successful Login
+index=windows (EventCode=4625 OR EventCode=4624)
+| stats count(eval(EventCode=4625)) as failures count(eval(EventCode=4624)) as successes values(Source_Network_Address) as src by Account_Name
+| where failures >= 5 AND successes >= 1
+
+# Detection 03 - Suspicious PowerShell
+index=windows EventCode=4104
+| search ScriptBlockText="*EncodedCommand*" OR ScriptBlockText="*IEX*" OR ScriptBlockText="*DownloadString*"
+| table _time Computer User ScriptBlockText
+
+# Detection 04 - Account Creation
+index=windows EventCode=4720
+| table _time Computer SubjectUserName TargetUserName
+| sort - _time
+
+# Detection 05 - Privileged Group Change
+index=windows EventCode=4732
+| table _time Computer SubjectUserName MemberName GroupName
+| sort - _time
